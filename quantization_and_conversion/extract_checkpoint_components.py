@@ -7,17 +7,23 @@ Run with the ComfyUI venv.
 
 Examples:
   # Video VAE -> standalone ComfyUI VAE (strip the 'vae.' prefix; Load VAE expects that)
-  extract_components.py -i checkpoint.safetensors -o ltx_vae_bf16.safetensors \
+  extract_checkpoint_components.py -i checkpoint.safetensors -o ltx_vae_bf16.safetensors \
       --prefix "vae." --to ""
 
   # text_embedding_projection -> standalone (keep the prefix; the LTX TE loader looks for it)
-  extract_components.py -i checkpoint.safetensors -o ltx_te_proj_bf16.safetensors \
+  extract_checkpoint_components.py -i checkpoint.safetensors -o ltx_te_proj_bf16.safetensors \
       --prefix "text_embedding_projection."
 """
-import argparse, os, sys
+import argparse
+import os
+import sys
 from safetensors import safe_open
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # import comfy
+# Walk up to the ComfyUI root (dir containing comfy/) so this works from any subfolder.
+_root = os.path.dirname(os.path.abspath(__file__))
+while _root != os.path.dirname(_root) and not os.path.isdir(os.path.join(_root, "comfy")):
+    _root = os.path.dirname(_root)
+sys.path.insert(0, _root)
 import comfy.utils
 
 def main():

@@ -52,3 +52,5 @@ CLAUDE.md
 /.claude-plugin/
 /.input_archived/
 /wildcards/
+/convert_to_quant/
+/lm_civitai_extension/
