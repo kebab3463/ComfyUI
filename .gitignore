@@ -54,3 +54,12 @@ CLAUDE.md
 /wildcards/
 /convert_to_quant/
 /lm_civitai_extension/
+/_custom_nodes/
+/.specstory/
+/.claude/
+/**/.pytest_cache/
+/.remember/
+/openclaw_state/
+.cursorindexingignore
+/poses/
+scratchwork.ipynb
