@@ -1,9 +1,9 @@
 [project]
 name = "ComfyUI"
-version = "0.38.0"
+version = "0.37.0"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.11,<3.13"
+requires-python = "==3.12.*"
 dependencies = [
     "accelerate>=1.12.0",
     "agents>=1.4.0",
@@ -16,11 +16,12 @@ dependencies = [
     "argostranslate",
     "attrdict>=2.0.1",
     "audioread>=3.1.0",
-    "av>=16.0.0",
+    "av>=17.0.0",
     "bitsandbytes>=0.49.2",
     "black>=25.1.0",
     "blake3>=1.0.8",
     "blend-modes>=2.2.0",
+    "braceexpand>=0.1.7",
     "brotli>=1.2.0",
     "cffi>=2.0.0",
     "chardet>=6.0.0.post1",
@@ -30,14 +31,14 @@ dependencies = [
     "colored>=2.3.2",
     "colour-science>=0.4.7",
     "comfy-3d-viewers>=0.2.36",
-    "comfy-aimdo==0.4.13",
+    "comfy-aimdo==0.5.5",
     "comfy-angle>=0.1.0",
     "comfy-env>=0.2.18",
-    "comfy-kitchen==0.2.31",
-    "comfyui-embedded-docs==0.5.10",
-    "comfyui-frontend-package==1.49.6",
+    "comfy-kitchen==0.2.37",
+    "comfyui-embedded-docs==0.5.13",
+    "comfyui-frontend-package==1.53.10",
     "comfyui-manager==4.2.2",
-    "comfyui-workflow-templates==0.11.43",
+    "comfyui-workflow-templates==0.11.76",
     # "convert-to-quant",
     "convert-to-quant>=1.3.3",
     "cryptography>=46.0.5",
@@ -45,6 +46,7 @@ dependencies = [
     "cuda-pathfinder==1.2.2",
     "ddt>=1.7.2",
     "decorator>=5.2.1",
+    "decord",
     "deepdiff>=8.6.1",
     "deepface>=0.0.100",
     "deface>=1.5.0",
@@ -60,8 +62,10 @@ dependencies = [
     "ffmpy>=1.0.0",
     "filelock==3.20.0",
     "fire>=0.7.0",
+    "flash-attn-4>=4.0.0b26",
     "fsspec==2025.12.0",
     "ftfy>=6.3.1",
+    "fvcore>=0.1.5.post20221221",
     "gdown>=5.2.1",
     "gguf>=0.17.1",
     "gitdb>=4.0.12",
@@ -77,10 +81,14 @@ dependencies = [
     "hf-xet>=1.2.0",
     "hpack>=4.1.0",
     "httpx-retries>=0.6.0",
-    "huggingface-hub>=0.36.2",
+    "huggingface-hub>=2.2.0",
+    "hydra-colorlog>=1.2.0",
+    "hydra-core>=1.3.5",
+    "hydra-submitit-launcher>=1.2.0",
     "hyperframe>=6.1.0",
     "imageio-ffmpeg>=0.6.0",
     "insightface>=0.7.3",
+    "jsonlines>=4.0.0",
     "jsonpickle>=4.1.1",
     "jsonschema>=4.26.0",
     "jsonschema-specifications>=2025.9.1",
@@ -99,11 +107,13 @@ dependencies = [
     "mir-eval>=0.8.2",
     "mistralai>=2.4.7",
     "mmcv>=2.2.0",
+    "moge",
     "more-itertools>=10.8.0",
     "mss>=10.1.0",
     "munkres>=1.1.4",
     "music21>=9.3.0",
     "natsort>=8.4.0",
+    "nh3>=0.3.7",
     "ninja>=1.13.0",
     "nnaudio>=0.3.1",
     "numba>=0.64.0",
@@ -119,10 +129,13 @@ dependencies = [
     "ollama>=0.6.1",
     "omegaconf>=2.3.0",
     "onnx>=1.21.0",
+    "onnxruntime>=1.29.0",
     "onnxruntime-gpu>=1.24.2",
     "open-clip-torch>=3.2.0",
     "openai-agents>=0.9.3",
     "opencv-python>=4.13.0.92",
+    "opencv-python-headless>=5.0.0.93",
+    "optree>=0.20.0",
     "orjson>=3.11.7",
     "pexpect>=4.9.0",
     "pi-heif>=1.3.0",
@@ -144,12 +157,14 @@ dependencies = [
     "pydantic-settings~=2.0",
     "pydub>=0.25.1",
     "pygithub>=2.8.1",
+    "pyglet<2",
     "pyjwt>=2.11.0",
     "pymatting>=1.1.15",
     "pynacl>=1.6.2",
-    "pyopengl>=3.1.8",
+    "pyopengl==3.1.0",
     "pyopengl-accelerate>=3.1.10",
     "pypdf2>=3.0.1",
+    "pyrender>0.1.17",
     "python-osc>=1.9.3",
     "python-socks>=2.8.1",
     "pytorch-lightning>=2.6.1",
@@ -162,8 +177,10 @@ dependencies = [
     "reportlab>=4.4.10",
     "requests>=2.32.5",
     "requirements-parser>=0.13.0",
+    "roma>=1.6.1",
     "rotary-embedding-torch>=0.8.9",
     "rpds-py>=0.30.0",
+    "rtmlib>=0.0.16",
     "ruff>=0.15.2",
     "runwayml>=4.6.1",
     "safehttpx>=0.1.7",
@@ -172,7 +189,7 @@ dependencies = [
     "sageattention3-blackwell",
     "sam-2",
     "sam3",
-    "scikit-image>=0.26.0",
+    "scikit-image",  # >=0.26.0",
     "scikit-learn>=1.8.0",
     "scipy>=1.17.0",
     "segment-anything>=1.0",
@@ -190,7 +207,7 @@ dependencies = [
     "srt>=3.5.3",
     "tabulate>=0.10.0",
     "tensorflow[and-cuda]>=2.20.0",
-    "tensorrt>=10.15.1.29",
+    # "tensorrt>=10.15.1.29",
     "tensorrt-cu13>=10.15.1.29",
     "tensorrt-cu13-bindings>=10.15.1.29",
     "tensorrt-cu13-libs>=10.15.1.29",
@@ -207,6 +224,7 @@ dependencies = [
     "torchvision>=0.25.0",
     "tqdm>=4.67.3",
     "transformers>=4.50.3",
+    "trimesh>=5.1.1",
     "triton>=3.7.1",
     "typer>=0.24.1",
     "typer-slim>=0.24.0",
@@ -216,6 +234,7 @@ dependencies = [
     "watchdog>=6.0.0",
     "webcolors>=25.10.0",
     "wget>=3.2",
+    "yacs>=0.1.8",
     "yarl>=1.18.0",
 ]
 
@@ -328,11 +347,12 @@ sageattention3-blackwell = { workspace = true }
 sam3 = { workspace = true }
 # argostranslate = { git = "https://github.com/argosopentech/argos-translate.git" }
 groundingdino = { git = "https://github.com/IDEA-Research/GroundingDINO.git" }
-
+nvidia-vfx = [{ index = "nvidia-pypi", marker = "sys_platform == 'linux' and platform_machine != 'aarch64'" },]
 
 # argostranslate = { git = "https://github.com/argosopentech/argos-translate.git" }
 # cstr = { git = "https://github.com/WASasquatch/cstr.git" }
 # ffmpy = { git = "https://github.com/WASasquatch/ffmpy.git" }
 # img2texture = { git = "https://github.com/WASasquatch/img2texture.git" }
 sam-2 = { git = "https://github.com/facebookresearch/sam2" }
+moge = { git = "https://github.com/microsoft/MoGe.git", rev = "07444410f1e33f402353b99d6ccd26bd31e469e8" }
 # convert-to-quant = { workspace = true }

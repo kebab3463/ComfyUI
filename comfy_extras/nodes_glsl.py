@@ -1,17 +1,17 @@
-import os
-import sys
-import re
 import ctypes
 import logging
+import os
+import re
+import sys
 from typing import TypedDict
 
+import comfy_angle
 import numpy as np
 import torch
+from typing_extensions import override
 
 import nodes
-import comfy_angle
 from comfy_api.latest import ComfyExtension, io, ui
-from typing_extensions import override
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
 
 
 import OpenGL
+
 OpenGL.USE_ACCELERATE = False
 
 
@@ -48,13 +49,16 @@ def _patch_find_library():
     if sys.platform == "linux":
         return
     import ctypes.util
+
     _orig = ctypes.util.find_library
+
     def _patched(name):
-        if name == 'EGL':
+        if name == "EGL":
             return comfy_angle.get_egl_path()
-        if name == 'GLESv2':
+        if name == "GLESv2":
             return comfy_angle.get_glesv2_path()
         return _orig(name)
+
     ctypes.util.find_library = _patched
 
 
@@ -63,17 +67,18 @@ _patch_find_library()
 from OpenGL import EGL
 from OpenGL import GLES3 as gl
 
+
 class SizeModeInput(TypedDict):
     size_mode: str
     width: int
     height: int
 
 
-MAX_IMAGES = 5      # u_image0-4
-MAX_UNIFORMS = 20   # u_float0-19, u_int0-19
-MAX_BOOLS = 10      # u_bool0-9
-MAX_CURVES = 4      # u_curve0-3 (1D LUT textures)
-MAX_OUTPUTS = 4     # fragColor0-3 (MRT)
+MAX_IMAGES = 5  # u_image0-4
+MAX_UNIFORMS = 20  # u_float0-19, u_int0-19
+MAX_BOOLS = 10  # u_bool0-9
+MAX_CURVES = 4  # u_curve0-3 (1D LUT textures)
+MAX_OUTPUTS = 4  # fragColor0-3 (MRT)
 
 # Vertex shader using gl_VertexID trick - no VBO needed.
 # Draws a single triangle that covers the entire screen:
@@ -109,7 +114,6 @@ void main() {
 """
 
 
-
 def _egl_attribs(*values):
     """Build an EGL_NONE-terminated EGLint attribute array."""
     vals = list(values) + [EGL.EGL_NONE]
@@ -125,11 +129,13 @@ EGL_MESA_PLATFORM_SURFACELESS = 0x31DD
 
 _eglGetPlatformDisplayEXT = None
 
+
 def _get_egl_platform_display_ext(platform, native_display, attribs):
     """Call eglGetPlatformDisplayEXT via ctypes (extension, not in PyOpenGL)."""
     global _eglGetPlatformDisplayEXT
     if _eglGetPlatformDisplayEXT is None:
         from OpenGL import platform as _plat
+
         egl_lib = _plat.PLATFORM.EGL
         _get_proc = egl_lib.eglGetProcAddress
         _get_proc.restype = ctypes.c_void_p
@@ -137,7 +143,9 @@ def _get_egl_platform_display_ext(platform, native_display, attribs):
         ptr = _get_proc(b"eglGetPlatformDisplayEXT")
         if not ptr:
             return None
-        func_type = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_void_p)
+        func_type = ctypes.CFUNCTYPE(
+            ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_void_p
+        )
         _eglGetPlatformDisplayEXT = func_type(ptr)
 
     raw = _eglGetPlatformDisplayEXT(platform, native_display, attribs)
@@ -156,7 +164,9 @@ def _get_egl_display():
     if display:
         major, minor = ctypes.c_int32(0), ctypes.c_int32(0)
         try:
-            if EGL.eglInitialize(display, ctypes.byref(major), ctypes.byref(minor)):
+            if EGL.eglInitialize(
+                display, ctypes.byref(major), ctypes.byref(minor)
+            ):
                 return display, major.value, minor.value
         except Exception as e:
             failures.append(f"default: {e}")
@@ -166,18 +176,31 @@ def _get_egl_display():
     # Headless fallback strategies, tried in order:
     headless_strategies = [
         ("surfaceless", EGL_MESA_PLATFORM_SURFACELESS, None, None),
-        ("ANGLE Vulkan", EGL_PLATFORM_ANGLE_ANGLE, None,
-         _egl_attribs(EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)),
+        (
+            "ANGLE Vulkan",
+            EGL_PLATFORM_ANGLE_ANGLE,
+            None,
+            _egl_attribs(
+                EGL_PLATFORM_ANGLE_TYPE_ANGLE,
+                EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE,
+            ),
+        ),
     ]
 
     for name, platform, native_display, attribs in headless_strategies:
-        display = _get_egl_platform_display_ext(platform, native_display, attribs)
+        display = _get_egl_platform_display_ext(
+            platform, native_display, attribs
+        )
         if not display:
-            failures.append(f"{name}: eglGetPlatformDisplayEXT returned no display")
+            failures.append(
+                f"{name}: eglGetPlatformDisplayEXT returned no display"
+            )
             continue
         major, minor = ctypes.c_int32(0), ctypes.c_int32(0)
         try:
-            if EGL.eglInitialize(display, ctypes.byref(major), ctypes.byref(minor)):
+            if EGL.eglInitialize(
+                display, ctypes.byref(major), ctypes.byref(minor)
+            ):
                 logger.info(f"Using EGL {name} platform (headless)")
                 return display, major.value, minor.value
             failures.append(f"{name}: eglInitialize returned false")
@@ -221,7 +244,7 @@ def _detect_pass_count(source: str) -> int:
 
     Returns the number of passes (1 if not specified).
     """
-    match = re.search(r'#pragma\s+passes\s+(\d+)', source)
+    match = re.search(r"#pragma\s+passes\s+(\d+)", source)
     if match:
         return max(1, int(match.group(1)))
     return 1
@@ -243,6 +266,7 @@ class GLContext:
             return
 
         import time
+
         start = time.perf_counter()
 
         self._display = None
@@ -258,33 +282,51 @@ class GLContext:
 
             config = EGL.EGLConfig()
             n_configs = ctypes.c_int32(0)
-            if not EGL.eglChooseConfig(
-                self._display,
-                _egl_attribs(
-                    EGL.EGL_RENDERABLE_TYPE, EGL.EGL_OPENGL_ES3_BIT,
-                    EGL.EGL_SURFACE_TYPE, EGL.EGL_PBUFFER_BIT,
-                    EGL.EGL_RED_SIZE, 8, EGL.EGL_GREEN_SIZE, 8,
-                    EGL.EGL_BLUE_SIZE, 8, EGL.EGL_ALPHA_SIZE, 8,
-                ),
-                ctypes.byref(config), 1, ctypes.byref(n_configs),
-            ) or n_configs.value == 0:
+            if (
+                not EGL.eglChooseConfig(
+                    self._display,
+                    _egl_attribs(
+                        EGL.EGL_RENDERABLE_TYPE,
+                        EGL.EGL_OPENGL_ES3_BIT,
+                        EGL.EGL_SURFACE_TYPE,
+                        EGL.EGL_PBUFFER_BIT,
+                        EGL.EGL_RED_SIZE,
+                        8,
+                        EGL.EGL_GREEN_SIZE,
+                        8,
+                        EGL.EGL_BLUE_SIZE,
+                        8,
+                        EGL.EGL_ALPHA_SIZE,
+                        8,
+                    ),
+                    ctypes.byref(config),
+                    1,
+                    ctypes.byref(n_configs),
+                )
+                or n_configs.value == 0
+            ):
                 raise RuntimeError("eglChooseConfig() failed")
 
             self._surface = EGL.eglCreatePbufferSurface(
-                self._display, config,
+                self._display,
+                config,
                 _egl_attribs(EGL.EGL_WIDTH, 64, EGL.EGL_HEIGHT, 64),
             )
             if not self._surface:
                 raise RuntimeError("eglCreatePbufferSurface() failed")
 
             self._context = EGL.eglCreateContext(
-                self._display, config, EGL.EGL_NO_CONTEXT,
+                self._display,
+                config,
+                EGL.EGL_NO_CONTEXT,
                 _egl_attribs(EGL.EGL_CONTEXT_CLIENT_VERSION, 3),
             )
             if not self._context:
                 raise RuntimeError("eglCreateContext() failed")
 
-            if not EGL.eglMakeCurrent(self._display, self._surface, self._surface, self._context):
+            if not EGL.eglMakeCurrent(
+                self._display, self._surface, self._surface, self._context
+            ):
                 raise RuntimeError("eglMakeCurrent() failed")
 
             self._vao = gl.glGenVertexArrays(1)
@@ -301,12 +343,18 @@ class GLContext:
         version = _gl_str(gl.GL_VERSION)
 
         GLContext._initialized = True
-        logger.info(f"GLSL context initialized in {elapsed:.1f}ms - EGL {self._egl_major}.{self._egl_minor}, {renderer} ({vendor}), GL {version}")
+        logger.info(
+            f"GLSL context initialized in {elapsed:.1f}ms - EGL {self._egl_major}.{self._egl_minor}, {renderer} ({vendor}), GL {version}"
+        )
 
     def make_current(self):
-        if not EGL.eglMakeCurrent(self._display, self._surface, self._surface, self._context):
+        if not EGL.eglMakeCurrent(
+            self._display, self._surface, self._surface, self._context
+        ):
             err = EGL.eglGetError()
-            raise RuntimeError(f"eglMakeCurrent() failed (EGL error: 0x{err:04X})")
+            raise RuntimeError(
+                f"eglMakeCurrent() failed (EGL error: 0x{err:04X})"
+            )
         if self._vao is not None:
             gl.glBindVertexArray(self._vao)
 
@@ -320,7 +368,12 @@ class GLContext:
         except Exception:
             pass
         try:
-            EGL.eglMakeCurrent(self._display, EGL.EGL_NO_SURFACE, EGL.EGL_NO_SURFACE, EGL.EGL_NO_CONTEXT)
+            EGL.eglMakeCurrent(
+                self._display,
+                EGL.EGL_NO_SURFACE,
+                EGL.EGL_NO_SURFACE,
+                EGL.EGL_NO_CONTEXT,
+            )
         except Exception:
             pass
         try:
@@ -360,7 +413,9 @@ def _create_program(vertex_source: str, fragment_source: str) -> int:
     """Create and link a shader program."""
     vertex_shader = _compile_shader(vertex_source, gl.GL_VERTEX_SHADER)
     try:
-        fragment_shader = _compile_shader(fragment_source, gl.GL_FRAGMENT_SHADER)
+        fragment_shader = _compile_shader(
+            fragment_source, gl.GL_FRAGMENT_SHADER
+        )
     except RuntimeError:
         gl.glDeleteShader(vertex_shader)
         raise
@@ -413,6 +468,7 @@ def _render_shader_batch(
         List of batch outputs, each is a list of output images (H, W, 4) float32 [0,1]
     """
     import time
+
     start_time = time.perf_counter()
 
     if not image_batches:
@@ -462,15 +518,38 @@ def _render_shader_batch(
             tex = gl.glGenTextures(1)
             output_textures.append(tex)
             gl.glBindTexture(gl.GL_TEXTURE_2D, tex)
-            gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA32F, width, height, 0, gl.GL_RGBA, gl.GL_FLOAT, None)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-            gl.glFramebufferTexture2D(gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0 + i, gl.GL_TEXTURE_2D, tex, 0)
+            gl.glTexImage2D(
+                gl.GL_TEXTURE_2D,
+                0,
+                gl.GL_RGBA32F,
+                width,
+                height,
+                0,
+                gl.GL_RGBA,
+                gl.GL_FLOAT,
+                None,
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR
+            )
+            gl.glFramebufferTexture2D(
+                gl.GL_FRAMEBUFFER,
+                gl.GL_COLOR_ATTACHMENT0 + i,
+                gl.GL_TEXTURE_2D,
+                tex,
+                0,
+            )
             draw_buffers.append(gl.GL_COLOR_ATTACHMENT0 + i)
 
         gl.glDrawBuffers(num_outputs, draw_buffers)
 
-        if gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) != gl.GL_FRAMEBUFFER_COMPLETE:
+        if (
+            gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER)
+            != gl.GL_FRAMEBUFFER_COMPLETE
+        ):
             raise RuntimeError("Framebuffer is not complete")
 
         # Create ping-pong resources for multi-pass rendering
@@ -479,19 +558,46 @@ def _render_shader_batch(
                 pp_tex = gl.glGenTextures(1)
                 ping_pong_textures.append(pp_tex)
                 gl.glBindTexture(gl.GL_TEXTURE_2D, pp_tex)
-                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA32F, width, height, 0, gl.GL_RGBA, gl.GL_FLOAT, None)
-                gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-                gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-                gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
-                gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+                gl.glTexImage2D(
+                    gl.GL_TEXTURE_2D,
+                    0,
+                    gl.GL_RGBA32F,
+                    width,
+                    height,
+                    0,
+                    gl.GL_RGBA,
+                    gl.GL_FLOAT,
+                    None,
+                )
+                gl.glTexParameteri(
+                    gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR
+                )
+                gl.glTexParameteri(
+                    gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR
+                )
+                gl.glTexParameteri(
+                    gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE
+                )
+                gl.glTexParameteri(
+                    gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE
+                )
 
                 pp_fbo = gl.glGenFramebuffers(1)
                 ping_pong_fbos.append(pp_fbo)
                 gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, pp_fbo)
-                gl.glFramebufferTexture2D(gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, pp_tex, 0)
+                gl.glFramebufferTexture2D(
+                    gl.GL_FRAMEBUFFER,
+                    gl.GL_COLOR_ATTACHMENT0,
+                    gl.GL_TEXTURE_2D,
+                    pp_tex,
+                    0,
+                )
                 gl.glDrawBuffers(1, [gl.GL_COLOR_ATTACHMENT0])
 
-                if gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) != gl.GL_FRAMEBUFFER_COMPLETE:
+                if (
+                    gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER)
+                    != gl.GL_FRAMEBUFFER_COMPLETE
+                ):
                     raise RuntimeError("Ping-pong framebuffer is not complete")
 
         # Create input textures (reused for all batches)
@@ -500,10 +606,18 @@ def _render_shader_batch(
             input_textures.append(tex)
             gl.glActiveTexture(gl.GL_TEXTURE0 + i)
             gl.glBindTexture(gl.GL_TEXTURE_2D, tex)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE
+            )
 
             loc = gl.glGetUniformLocation(program, f"u_image{i}")
             if loc >= 0:
@@ -536,11 +650,29 @@ def _render_shader_batch(
             unit = MAX_IMAGES + i
             gl.glActiveTexture(gl.GL_TEXTURE0 + unit)
             gl.glBindTexture(gl.GL_TEXTURE_2D, tex)
-            gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_R32F, len(lut), 1, 0, gl.GL_RED, gl.GL_FLOAT, lut)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+            gl.glTexImage2D(
+                gl.GL_TEXTURE_2D,
+                0,
+                gl.GL_R32F,
+                len(lut),
+                1,
+                0,
+                gl.GL_RED,
+                gl.GL_FLOAT,
+                lut,
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE
+            )
+            gl.glTexParameteri(
+                gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE
+            )
 
             loc = gl.glGetUniformLocation(program, f"u_curve{i}")
             if loc >= 0:
@@ -550,7 +682,9 @@ def _render_shader_batch(
         pass_loc = gl.glGetUniformLocation(program, "u_pass")
 
         gl.glViewport(0, 0, width, height)
-        gl.glDisable(gl.GL_BLEND)  # Ensure no alpha blending - write output directly
+        gl.glDisable(
+            gl.GL_BLEND
+        )  # Ensure no alpha blending - write output directly
 
         # Process each batch
         all_batch_outputs = []
@@ -569,7 +703,17 @@ def _render_shader_batch(
                 else:
                     img_upload = np.ascontiguousarray(img[::-1, :, :])
 
-                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA32F, w, h, 0, gl.GL_RGBA, gl.GL_FLOAT, img_upload)
+                gl.glTexImage2D(
+                    gl.GL_TEXTURE_2D,
+                    0,
+                    gl.GL_RGBA32F,
+                    w,
+                    h,
+                    0,
+                    gl.GL_RGBA,
+                    gl.GL_FLOAT,
+                    img_upload,
+                )
 
             if num_passes == 1:
                 # Single pass - render directly to output FBO
@@ -582,7 +726,7 @@ def _render_shader_batch(
             else:
                 # Multi-pass rendering with ping-pong
                 for p in range(num_passes):
-                    is_last_pass = (p == num_passes - 1)
+                    is_last_pass = p == num_passes - 1
 
                     # Set pass uniform
                     if pass_loc >= 0:
@@ -616,7 +760,9 @@ def _render_shader_batch(
             for i in range(num_outputs):
                 gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT0 + i)
                 buf = np.empty((height, width, 4), dtype=np.float32)
-                gl.glReadPixels(0, 0, width, height, gl.GL_RGBA, gl.GL_FLOAT, buf)
+                gl.glReadPixels(
+                    0, 0, width, height, gl.GL_RGBA, gl.GL_FLOAT, buf
+                )
                 batch_outputs.append(buf[::-1, :, :].copy())
 
             # Pad with black images for unused outputs
@@ -629,7 +775,9 @@ def _render_shader_batch(
         elapsed = (time.perf_counter() - start_time) * 1000
         num_batches = len(image_batches)
         pass_info = f", {num_passes} passes" if num_passes > 1 else ""
-        logger.info(f"GLSL shader executed in {elapsed:.1f}ms ({num_batches} batch{'es' if num_batches != 1 else ''}, {width}x{height}{pass_info})")
+        logger.info(
+            f"GLSL shader executed in {elapsed:.1f}ms ({num_batches} batch{'es' if num_batches != 1 else ''}, {width}x{height}{pass_info})"
+        )
 
         return all_batch_outputs
 
@@ -653,8 +801,8 @@ def _render_shader_batch(
         if program is not None:
             gl.glDeleteProgram(program)
 
-class GLSLShader(io.ComfyNode):
 
+class GLSLShader(io.ComfyNode):
     @classmethod
     def define_schema(cls) -> io.Schema:
         image_template = io.Autogrow.TemplatePrefix(
@@ -733,17 +881,49 @@ class GLSLShader(io.ComfyNode):
                     ],
                     tooltip="Output size: 'from_input' uses first input image dimensions, 'custom' allows manual size",
                 ),
-                io.Autogrow.Input("images", template=image_template, tooltip=f"Images are available as u_image0-{MAX_IMAGES-1} (sampler2D) in the shader code"),
-                io.Autogrow.Input("floats", template=float_template, tooltip=f"Floats are available as u_float0-{MAX_UNIFORMS-1} in the shader code"),
-                io.Autogrow.Input("ints", template=int_template, tooltip=f"Ints are available as u_int0-{MAX_UNIFORMS-1} in the shader code"),
-                io.Autogrow.Input("bools", template=bool_template, tooltip=f"Booleans are available as u_bool0-{MAX_BOOLS-1} (bool) in the shader code"),
-                io.Autogrow.Input("curves", template=curve_template, tooltip=f"Curves are available as u_curve0-{MAX_CURVES-1} (sampler2D, 1D LUT) in the shader code. Sample with texture(u_curve0, vec2(x, 0.5)).r"),
+                io.Autogrow.Input(
+                    "images",
+                    template=image_template,
+                    tooltip=f"Images are available as u_image0-{MAX_IMAGES - 1} (sampler2D) in the shader code",
+                ),
+                io.Autogrow.Input(
+                    "floats",
+                    template=float_template,
+                    tooltip=f"Floats are available as u_float0-{MAX_UNIFORMS - 1} in the shader code",
+                ),
+                io.Autogrow.Input(
+                    "ints",
+                    template=int_template,
+                    tooltip=f"Ints are available as u_int0-{MAX_UNIFORMS - 1} in the shader code",
+                ),
+                io.Autogrow.Input(
+                    "bools",
+                    template=bool_template,
+                    tooltip=f"Booleans are available as u_bool0-{MAX_BOOLS - 1} (bool) in the shader code",
+                ),
+                io.Autogrow.Input(
+                    "curves",
+                    template=curve_template,
+                    tooltip=f"Curves are available as u_curve0-{MAX_CURVES - 1} (sampler2D, 1D LUT) in the shader code. Sample with texture(u_curve0, vec2(x, 0.5)).r",
+                ),
             ],
             outputs=[
-                io.Image.Output(display_name="IMAGE0", tooltip="Available via layout(location = 0) out vec4 fragColor0 in the shader code"),
-                io.Image.Output(display_name="IMAGE1", tooltip="Available via layout(location = 1) out vec4 fragColor1 in the shader code"),
-                io.Image.Output(display_name="IMAGE2", tooltip="Available via layout(location = 2) out vec4 fragColor2 in the shader code"),
-                io.Image.Output(display_name="IMAGE3", tooltip="Available via layout(location = 3) out vec4 fragColor3 in the shader code"),
+                io.Image.Output(
+                    display_name="IMAGE0",
+                    tooltip="Available via layout(location = 0) out vec4 fragColor0 in the shader code",
+                ),
+                io.Image.Output(
+                    display_name="IMAGE1",
+                    tooltip="Available via layout(location = 1) out vec4 fragColor1 in the shader code",
+                ),
+                io.Image.Output(
+                    display_name="IMAGE2",
+                    tooltip="Available via layout(location = 2) out vec4 fragColor2 in the shader code",
+                ),
+                io.Image.Output(
+                    display_name="IMAGE3",
+                    tooltip="Available via layout(location = 3) out vec4 fragColor3 in the shader code",
+                ),
             ],
         )
 
@@ -762,12 +942,28 @@ class GLSLShader(io.ComfyNode):
 
         image_list = [v for v in images.values() if v is not None]
         float_list = (
-            [v if v is not None else 0.0 for v in floats.values()] if floats else []
+            [v if v is not None else 0.0 for v in floats.values()]
+            if floats
+            else []
         )
-        int_list = [v if v is not None else 0 for v in ints.values()] if ints else []
-        bool_list = [v if v is not None else False for v in bools.values()] if bools else []
+        int_list = (
+            [v if v is not None else 0 for v in ints.values()] if ints else []
+        )
+        bool_list = (
+            [v if v is not None else False for v in bools.values()]
+            if bools
+            else []
+        )
 
-        curve_luts = [v.to_lut().astype(np.float32) for v in curves.values() if v is not None] if curves else []
+        curve_luts = (
+            [
+                v.to_lut().astype(np.float32)
+                for v in curves.values()
+                if v is not None
+            ]
+            if curves
+            else []
+        )
 
         if not image_list:
             raise ValueError("At least one input image is required")
@@ -784,7 +980,10 @@ class GLSLShader(io.ComfyNode):
         # Prepare batches
         image_batches = []
         for batch_idx in range(batch_size):
-            batch_images = [img_tensor[batch_idx].cpu().numpy().astype(np.float32) for img_tensor in image_list]
+            batch_images = [
+                img_tensor[batch_idx].cpu().numpy().astype(np.float32)
+                for img_tensor in image_list
+            ]
             image_batches.append(batch_images)
 
         all_batch_outputs = _render_shader_batch(
@@ -804,7 +1003,9 @@ class GLSLShader(io.ComfyNode):
             for i, out_img in enumerate(batch_outputs):
                 all_outputs[i].append(torch.from_numpy(out_img))
 
-        output_tensors = [torch.stack(all_outputs[i], dim=0) for i in range(MAX_OUTPUTS)]
+        output_tensors = [
+            torch.stack(all_outputs[i], dim=0) for i in range(MAX_OUTPUTS)
+        ]
         return io.NodeOutput(
             *output_tensors,
             ui=cls._build_ui_output(image_list, output_tensors[0]),
@@ -817,13 +1018,15 @@ class GLSLShader(io.ComfyNode):
         """Build UI output with input and output images for client-side shader execution."""
         input_images_ui = []
         for img in image_list:
-            input_images_ui.extend(ui.ImageSaveHelper.save_images(
-                img,
-                filename_prefix="GLSLShader_input",
-                folder_type=io.FolderType.temp,
-                cls=None,
-                compress_level=1,
-            ))
+            input_images_ui.extend(
+                ui.ImageSaveHelper.save_images(
+                    img,
+                    filename_prefix="GLSLShader_input",
+                    folder_type=io.FolderType.temp,
+                    cls=None,
+                    compress_level=1,
+                )
+            )
 
         output_images_ui = ui.ImageSaveHelper.save_images(
             output_batch,

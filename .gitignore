@@ -37,7 +37,7 @@ gender_words_config.yaml
 /_models/
 backup.pyproject.toml
 models
-.archive/
+/.archived/
 archived_workflows/
 comfy_extras/nodes_qwen.py.backup
 prompts.db*
@@ -62,4 +62,8 @@ CLAUDE.md
 /openclaw_state/
 .cursorindexingignore
 /poses/
-scratchwork.ipynb
+/scratchwork/
+/FastVideo/
+/input_ext/
+/scripts/
+/.kilo/
