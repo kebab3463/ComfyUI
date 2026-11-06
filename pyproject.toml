@@ -31,14 +31,14 @@ dependencies = [
     "colored>=2.3.2",
     "colour-science>=0.4.7",
     "comfy-3d-viewers>=0.2.36",
-    "comfy-aimdo==0.5.5",
+    "comfy-aimdo==0.5.6",
     "comfy-angle>=0.1.0",
     "comfy-env>=0.2.18",
-    "comfy-kitchen==0.2.37",
-    "comfyui-embedded-docs==0.5.13",
-    "comfyui-frontend-package==1.53.10",
+    "comfy-kitchen==0.2.39",
+    "comfyui-embedded-docs==0.5.14",
+    "comfyui-frontend-package==1.57.1",
     "comfyui-manager==4.2.2",
-    "comfyui-workflow-templates==0.11.76",
+    "comfyui-workflow-templates==0.11.94",
     # "convert-to-quant",
     "convert-to-quant>=1.3.3",
     "cryptography>=46.0.5",
@@ -62,7 +62,6 @@ dependencies = [
     "ffmpy>=1.0.0",
     "filelock==3.20.0",
     "fire>=0.7.0",
-    "flash-attn-4>=4.0.0b26",
     "fsspec==2025.12.0",
     "ftfy>=6.3.1",
     "fvcore>=0.1.5.post20221221",
@@ -140,7 +139,7 @@ dependencies = [
     "pexpect>=4.9.0",
     "pi-heif>=1.3.0",
     "piexif>=1.1.3",
-    "pillow>=12.0.0",
+    "pillow>=10.1.0",
     "platformdirs>=4.9.2",
     "polars>1.41.0",
     "polars-runtime-32>1.41.0",
@@ -161,10 +160,11 @@ dependencies = [
     "pyjwt>=2.11.0",
     "pymatting>=1.1.15",
     "pynacl>=1.6.2",
-    "pyopengl==3.1.0",
+    #"pyopengl==3.1.0",
+    "pyopengl>=3.1.8",
     "pyopengl-accelerate>=3.1.10",
     "pypdf2>=3.0.1",
-    "pyrender>0.1.17",
+    "pyrender>=0.1.17",
     "python-osc>=1.9.3",
     "python-socks>=2.8.1",
     "pytorch-lightning>=2.6.1",
@@ -186,7 +186,7 @@ dependencies = [
     "safehttpx>=0.1.7",
     "safetensors>=0.4.2",
     "sageattention",
-    "sageattention3-blackwell",
+    "sageattn3",
     "sam-2",
     "sam3",
     "scikit-image",  # >=0.26.0",
@@ -308,14 +308,13 @@ messages_control.disable = [
 ]
 
 [tool.uv]
-no-build-isolation-package = ["sageattention", "sageattention3-blackwell", "sam3", "mmcv", "onnx", "onnxruntime", "onnxruntime-gpu", "accelerate", "groundingdino", "convert_to_quant", "flash-attn"]
+no-build-isolation-package = ["sageattention", "sageattn3", "sam3", "mmcv", "onnx", "onnxruntime", "onnxruntime-gpu", "accelerate", "groundingdino", "convert_to_quant", "flash-attn"]
 
 [tool.uv.workspace]
 members = [
-    "SageAttention/sageattention3_blackwell",
     "SageAttention",
-    "sam3",
-    "convert_to_quant"
+    "SageAttention/sageattention3_blackwell",
+    "sam3"
 ]
 
 [[tool.uv.index]]
@@ -331,6 +330,11 @@ name = "nvidia-pypi"
 url = "https://pypi.nvidia.com"
 explicit = true
 
+[[tool.uv.index]]
+name = "astral-cu130"
+url = "https://wheels.astral.sh/simple/cu130/"
+explicit = true
+
 [tool.uv.sources]
 triton = [{ index = "pytorch-cuda", marker = "sys_platform == 'linux' and platform_machine != 'aarch64'" },]
 torch = [{ index = "pytorch-cuda", marker = "sys_platform == 'linux' and platform_machine != 'aarch64'" },]
@@ -340,19 +344,14 @@ tensorrt-libs = [{ index = "nvidia-pypi" },]
 tensorrt-llm = [{ index = "nvidia-pypi" },]
 tensorrt-bindings = [{ index = "nvidia-pypi" },]
 tensorrt-lean = [{ index = "nvidia-pypi" },]
-# sam-2 = { git = "https://github.com/facebookresearch/sam2" }
-# transformers = { git = "https://github.com/huggingface/transformers", rev = "v4.49.0-Gemma-3" }
+# flash-attn = [{ index = "astral-cu130", marker = "sys_platform == 'linux' and platform_machine != 'aarch64'" },]
+# flash-attn-3 = [{ index = "astral-cu130", marker = "sys_platform == 'linux' and platform_machine != 'aarch64'" },]
 sageattention = { workspace = true }
-sageattention3-blackwell = { workspace = true }
+sageattn3 = { workspace = true }
+sam-2 = { git = "https://github.com/facebookresearch/sam2" }
 sam3 = { workspace = true }
-# argostranslate = { git = "https://github.com/argosopentech/argos-translate.git" }
+# sam3 = { git = "https://github.com/facebookresearch/sam3.git" }
 groundingdino = { git = "https://github.com/IDEA-Research/GroundingDINO.git" }
 nvidia-vfx = [{ index = "nvidia-pypi", marker = "sys_platform == 'linux' and platform_machine != 'aarch64'" },]
-
-# argostranslate = { git = "https://github.com/argosopentech/argos-translate.git" }
-# cstr = { git = "https://github.com/WASasquatch/cstr.git" }
-# ffmpy = { git = "https://github.com/WASasquatch/ffmpy.git" }
-# img2texture = { git = "https://github.com/WASasquatch/img2texture.git" }
-sam-2 = { git = "https://github.com/facebookresearch/sam2" }
-moge = { git = "https://github.com/microsoft/MoGe.git", rev = "07444410f1e33f402353b99d6ccd26bd31e469e8" }
+moge = { git = "https://github.com/microsoft/MoGe.git" }
 # convert-to-quant = { workspace = true }
