@@ -68,3 +68,6 @@ CLAUDE.md
 /scripts/
 /.kilo/
 /previews/
+quantization_and_conversion/comfy-quants
+quantization_and_conversion/convert_to_quant
+GroundingDINO
